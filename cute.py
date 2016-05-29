@@ -4,6 +4,8 @@ from xcute import cute, conf, Exc, Bump, Version
 
 conf["proj_name"] = "apng"
 
+Version('{proj_name}/__init__.py')()
+
 cute(
 	test = 'readme_build',
 	bump_pre = 'test',
@@ -27,5 +29,5 @@ cute(
 	readme_show = 'start %temp%/ld.html',
 	readme = 'readme_build',
 	readme_post = 'readme_show',
-	version = [Version('{proj_name}/__init__.py'), 'echo {version}']
+	version = 'echo {version}'
 )
