@@ -1,0 +1,7 @@
+README.rst
+setup.py
+apng/__init__.py
+apng.egg-info/PKG-INFO
+apng.egg-info/SOURCES.txt
+apng.egg-info/dependency_links.txt
+apng.egg-info/top_level.txt
