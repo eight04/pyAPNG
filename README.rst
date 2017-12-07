@@ -23,7 +23,7 @@ Development dependencies
 ------------------------
 
 -  `pngcheck <http://www.libpng.org/pub/png/apps/pngcheck.html>`_
--  Other dependencies please checkout requirements.txt.
+-  See requirements.txt for other dev-dependencies.
 
 Install
 -------
