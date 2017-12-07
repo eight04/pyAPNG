@@ -78,6 +78,16 @@ Todos
 Changelog
 ---------
 
+-  0.2.0 (Dec 8, 2017)
+
+   -  Add test.
+   -  Add documents.
+   -  Add: support path-like object.
+   -  Fix: some chunks must appear before IDAT. (`#1 <https://github.com/eight04/pyAPNG/issues/1>`_)
+   -  Fix: change chunks order in APNG. Some chunks are moved to the end of the file.
+   -  Fix: remove tRNS hack.
+   -  Fix: is_png shouldn't move file pointer. (`#2 <https://github.com/eight04/pyAPNG/pull/2>`_)
+
 -  0.1.0 (May 30, 2016)
 
    -  First release.
