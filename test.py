@@ -50,26 +50,22 @@ class Functional(TestCase):
 				im = APNG()
 				for png, ctrl in iter_frames(dir):
 					im.append(png, **ctrl)
-				# pngcheck can't work with stdin PIPE?
-				# stdin  cannot read PNG or MNG signature
-				with tempfile.TemporaryDirectory() as tempdir:
-					filename = "{}-animated.png".format(dir.stem)
-					im.save(pathlib.Path(tempdir).joinpath(filename))
-					subprocess.run(
-						["pngcheck", filename],
-						cwd=tempdir, shell=True, check=True
-					)
+				filename = "{}-animated.png".format(dir.stem)
+				im.save(pathlib.Path("build").joinpath(filename))
+				subprocess.run(
+					["pngcheck", filename],
+					cwd="build", shell=True, check=True
+				)
 				
 	def test_disassemble(self):
 		for dir in pathlib.Path("test").iterdir():
 			with self.subTest(dir.stem):
 				im = APNG.open(dir.joinpath("animated.png"))
 				for i, (png, ctrl) in enumerate(im.frames):
-					with tempfile.TemporaryDirectory() as tempdir:
-						filename = "{}-{}.png".format(dir.stem, i + 1)
-						png.save(pathlib.Path(tempdir).joinpath(filename))
-						subprocess.run(
-							["pngcheck", filename],
-							cwd=tempdir, shell=True, check=True)
+					filename = "{}-{}.png".format(dir.stem, i + 1)
+					png.save(pathlib.Path("build").joinpath(filename))
+					subprocess.run(
+						["pngcheck", filename],
+						cwd="build", shell=True, check=True)
 
 main()
