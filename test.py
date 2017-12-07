@@ -1,12 +1,16 @@
 #! python3
 
+import io
+import json
 import pathlib
+import subprocess
+import tempfile
 from unittest import TestCase, main
-from apng import is_png
+from apng import is_png, APNG
 
 class Main(TestCase):
 	def test_is_png(self):
-		file = pathlib.Path(__file__).joinpath("../test/test.png")
+		file = pathlib.Path("test/ball/animated.png")
 		with self.subTest("file name"):
 			assert is_png(str(file))
 			
@@ -24,5 +28,48 @@ class Main(TestCase):
 			
 		with self.subTest("path-like"):
 			assert is_png(file)
+
+class Functional(TestCase):
+	def test_assemble(self):
+		def iter_frames(dir):
+			frames = {}
+			for file in dir.glob("frame-*"):
+				if file.stem not in frames:
+					frames[file.stem] = {"name": file.stem}
+				frames[file.stem][file.suffix] = file
+			for frame in sorted(frames.values(), key=lambda i: int(i["name"].partition("-")[-1])):
+				if ".json" in frame:
+					ctrl = json.loads(frame[".json"].read_text())
+				else:
+					ctrl = {}
+				yield frame[".png"], ctrl
+				
+	
+		for dir in pathlib.Path("test").iterdir():
+			with self.subTest("dir: {}".format(dir.name)):
+				im = APNG()
+				for png, ctrl in iter_frames(dir):
+					im.append(png, **ctrl)
+				# pngcheck can't work with stdin PIPE?
+				# stdin  cannot read PNG or MNG signature
+				with tempfile.TemporaryDirectory() as tempdir:
+					filename = "{}-animated.png".format(dir.stem)
+					im.save(pathlib.Path(tempdir).joinpath(filename))
+					subprocess.run(
+						["pngcheck", filename],
+						cwd=tempdir, shell=True, check=True
+					)
+				
+	def test_disassemble(self):
+		for dir in pathlib.Path("test").iterdir():
+			with self.subTest(dir.stem):
+				im = APNG.open(dir.joinpath("animated.png"))
+				for i, (png, ctrl) in enumerate(im.frames):
+					with tempfile.TemporaryDirectory() as tempdir:
+						filename = "{}-{}.png".format(dir.stem, i + 1)
+						png.save(pathlib.Path(tempdir).joinpath(filename))
+						subprocess.run(
+							["pngcheck", filename],
+							cwd=tempdir, shell=True, check=True)
 
 main()

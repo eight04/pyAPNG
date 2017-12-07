@@ -1,0 +1,10 @@
+{
+  "width": 38,
+  "height": 91,
+  "x_offset": 31,
+  "y_offset": 8,
+  "delay": 75,
+  "delay_den": 1000,
+  "depose_op": 0,
+  "blend_op": 0
+}
