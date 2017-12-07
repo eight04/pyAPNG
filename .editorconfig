@@ -1,3 +1,7 @@
 [*.rst]
 indent_style = space
 indent_size = 3
+
+[*.yml]
+indent_style = space
+indent_size = 2
