@@ -1,6 +1,10 @@
 pyAPNG
 ======
 
+.. image:: https://readthedocs.org/projects/pyapng/badge/?version=latest
+   :target: http://pyapng.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+
 A Python module to deal with APNG file.
 
 Features
@@ -68,7 +72,10 @@ Extract frames from APNG file:
         png.save("{i}.png".format(i=i))
         i += 1
         
-Checkout the source for the details.
+Document
+---------
+
+http://pyapng.readthedocs.io/en/latest/
 
 Todos
 -----
