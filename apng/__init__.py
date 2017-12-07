@@ -103,7 +103,7 @@ def chunks(png):
 		
 def make_chunk(type, data):
 	"""Create a raw chunk by composing chunk's ``type`` and ``data``. It
-		calculates chunk length and CRC for you.
+	calculates chunk length and CRC for you.
 
 	:arg str type: PNG chunk type.
 	:arg bytes data: PNG chunk data, **excluding chunk length and CRC**.
