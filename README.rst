@@ -1,7 +1,7 @@
 pyAPNG
 ======
 
-A python module to deal with APNG file.
+A Python module to deal with APNG file.
 
 Features
 --------
