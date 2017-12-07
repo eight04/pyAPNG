@@ -62,7 +62,8 @@ def chunks_read(b):
 def chunks(png):
 	"""Yield chunks from png.
 	
-	@png can be a string of filename, a file-like object, or a bytes bject.
+	@png can be a string of filename, a path-like object, a file-like object,
+	or a bytes bject.
 	"""
 	if not is_png(png):
 		# convert to png
@@ -76,8 +77,8 @@ def chunks(png):
 				PIL.Image.open(png).save(f2, "PNG", optimize=True)
 				png = f2.getvalue()
 	
-	if isinstance(png, str):
-		# file name
+	if isinstance(png, str) or hasattr(png, "__fspath__"):
+		# path like
 		with open(png, "rb") as f:
 			png = f.read()		
 	elif hasattr(png, "read"):
@@ -145,9 +146,10 @@ class PNG:
 		return b"".join(chunks)
 		
 	def save(self, file):
-		"""Save to file. @file can be a str of filename or a file-like object.
+		"""Save to file. @file can be a str of filename, a path-like object, or
+		a file-like object.
 		"""
-		if isinstance(file, str):
+		if isinstance(file, str) or hasattr(file, "__fspath__"):
 			with open(file, "wb") as f:
 				f.write(self.to_bytes())
 		else:
@@ -323,7 +325,7 @@ class APNG:
 	def save(self, file):
 		"""Save to file. @file can be a str of filename or a file-like object.
 		"""
-		if isinstance(file, str):
+		if isinstance(file, str) or hasattr(file, "__fspath__"):
 			with open(file, "wb") as f:
 				f.write(self.to_bytes())
 		else:
