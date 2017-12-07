@@ -28,5 +28,6 @@ cute(
 	readme_build_err = ['readme_show', exc],
 	readme_show = 'start build/ld.html',
 	readme = 'readme_build',
-	readme_post = 'readme_show'
+	readme_post = 'readme_show',
+	doc = 'sphinx-autobuild -B -z {pkg_name} docs docs/build'
 )

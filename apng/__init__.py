@@ -30,10 +30,12 @@ CHUNK_BEFORE_IDAT = {
 }
 
 def is_png(png):
-	"""Test if @png is valid png file by checking signature
+	"""Test if ``png`` is a valid PNG file by checking the signature.
 	
-	@png can be str of the filename, a path-like object, a file-like object, or
-	a bytes object.
+	:arg png: If ``png`` is a :any:`path-like object` or :any:`file-like object`
+		object, read the content into bytes.
+	:type png: path-like, file-like, or bytes
+	:rtype: bool
 	"""
 	if isinstance(png, str) or hasattr(png, "__fspath__"):
 		with open(png, "rb") as f:
@@ -66,10 +68,16 @@ def chunks_read(b):
 		i += data_len + 12
 
 def chunks(png):
-	"""Yield chunks from png.
+	"""Yield ``(chunk_type, chunk_raw_data)`` from ``png``.
 	
-	@png can be a string of filename, a path-like object, a file-like object,
-	or a bytes bject.
+	.. note::
+	
+		``chunk_raw_data`` includes chunk length and CRC.
+	
+	:arg png: If ``png`` is a :any:`path-like object` or :any:`file-like object`
+		object, read the content into bytes.
+	:type png: path-like, file-like, or bytes
+	:rtype: Generator[tuple(str, bytes)]
 	"""
 	if not is_png(png):
 		# convert to png
@@ -94,11 +102,12 @@ def chunks(png):
 	return chunks_read(png)
 		
 def make_chunk(type, data):
-	"""Create chunk with @type and chunk data @data.
-	
-	It will calculate length and crc for you. Return bytes.
-	
-	@type is str and @data is bytes.
+	"""Create a raw chunk by composing chunk's ``type`` and ``data``. It
+		calculates chunk length and CRC for you.
+
+	:arg str type: PNG chunk type.
+	:arg bytes data: PNG chunk data, **excluding chunk length and CRC**.
+	:rtype: bytes
 	"""
 	out = struct.pack("!I", len(data))
 	data = type.encode("latin-1") + data
@@ -106,7 +115,8 @@ def make_chunk(type, data):
 	return out
 	
 class PNG:
-	"""Construct PNG image"""
+	"""Represent PNG image. This class should only be initiated with
+	classmethods."""
 	def __init__(self):
 		self.hdr = None
 		self.end = None
@@ -127,18 +137,24 @@ class PNG:
 			self.width, self.height = struct.unpack("!II", self.hdr[8:16])
 			
 	@classmethod
-	def open(cls, file):
-		"""Open a png from file. See chunks()."""
+	def open(cls, png):
+		"""Open a PNG file.
+		
+		:arg png: See :func:`chunks`.
+		:rtype: :class:`PNG`
+		"""
 		o = cls()
-		o.chunks = list(chunks(file))
+		o.chunks = list(chunks(png))
 		o.init()
 		return o
 		
 	@classmethod
 	def from_chunks(cls, chunks):
-		"""Construct PNG from chunks.
+		"""Construct PNG from raw chunks.
 		
-		@chunks is a list of (type, data) tuple. See chunks().
+		:arg chunks: A list of ``(chunk_type, chunk_raw_data)``. Also see
+			:func:`chunks`.
+		:type chunks: list[tuple(str, bytes)]
 		"""
 		o = cls()
 		o.chunks = chunks
@@ -146,14 +162,19 @@ class PNG:
 		return o
 		
 	def to_bytes(self):
-		"""Get bytes"""
+		"""Convert entire image to bytes.
+		
+		:rtype: bytes
+		"""
 		chunks = [PNG_SIGN]
 		chunks.extend(c[1] for c in self.chunks)
 		return b"".join(chunks)
 		
 	def save(self, file):
-		"""Save to file. @file can be a str of filename, a path-like object, or
-		a file-like object.
+		"""Save entire image to a file.
+
+		:arg file: The destination.
+		:type file: path-like or file-like
 		"""
 		if isinstance(file, str) or hasattr(file, "__fspath__"):
 			with open(file, "wb") as f:
@@ -162,8 +183,10 @@ class PNG:
 			file.write(self.to_bytes())
 		
 class FrameControl:
-	"""Construct fcTL info"""
+	"""A data class holding fcTL info."""
 	def __init__(self, width=None, height=None, x_offset=0, y_offset=0, delay=100, delay_den=1000, depose_op=1, blend_op=0):
+		"""Parameters are assigned as object members. See `https://wiki.mozilla.org/APNG_Specification <https://wiki.mozilla.org/APNG_Specification#.60fcTL.60:_The_Frame_Control_Chunk>`_ for the detail of fcTL.
+		"""
 		self.width = width
 		self.height = height
 		self.x_offset = x_offset
@@ -174,27 +197,37 @@ class FrameControl:
 		self.blend_op = blend_op
 		
 	def to_bytes(self):
-		"""Return bytes"""
+		"""Convert to bytes.
+		
+		:rtype: bytes
+		"""
 		return struct.pack("!IIIIHHbb", self.width, self.height, self.x_offset, self.y_offset, self.delay, self.delay_den, self.depose_op, self.blend_op)
 		
 	@classmethod
 	def from_bytes(cls, b):
 		"""Contruct fcTL info from bytes.
 		
-		@b should be a 28 length bytes object, excluding sequence number and crc.
+		:arg bytes b: The length of ``b`` must be *28*, excluding sequence
+			number and CRC.
 		"""
 		return cls(*struct.unpack("!IIIIHHbb", b))
 
 class APNG:
-	"""Construct APNG image"""
+	"""Represent APNG image."""
 	def __init__(self):
+		"""APNG is composed by multiple PNGs, which can be inserted with 
+		:meth:`append`.
+			
+		:var frames: Frames of APNG, a list of ``(png, control)`` tuple.
+		:vartype frames: list[tuple(PNG, FrameControl)]
+		"""
 		self.frames = []
 		
 	def append(self, png, **options):
-		"""Append one frame.
+		"""Read a PNG file and append one frame.
 		
-		@png      See PNG.open.
-		@options  See FrameControl.
+		:arg png: See :meth:`PNG.open`.
+		:arg options: See :class:`FrameControl`.
 		"""
 		png = PNG.open(png)
 		control = FrameControl(**options)
@@ -205,7 +238,10 @@ class APNG:
 		self.frames.append((png, control))
 		
 	def to_bytes(self):
-		"""Return binary."""
+		"""Convert entire image to bytes.
+		
+		:rtype: bytes
+		"""
 		
 		# grab the chunks we needs
 		out = [PNG_SIGN]
@@ -271,16 +307,17 @@ class APNG:
 		
 	@classmethod
 	def from_files(cls, files, **options):
-		"""Create APNG instance from multiple files.
+		"""Create APNG from multiple files.
 		
-		You can convert a series of image into apng by:
-		  APNG.from_files(files, delay=100).save(out_file_name)
-		  
-		Note that if you want to use different delays between each frames, you
-		have to use APNG.append separately to construct different frame
-		control.
-		  
-		See APNG.append for valid params.
+		This is same as::
+		
+			im = APNG()
+			for file in files:
+				im.append(file, **options)
+				
+		:arg list files: A list of file. See :meth:`PNG.open`.
+		:arg options: Options for :class:`FrameControl`.
+		:rtype: APNG
 		"""
 		o = cls()
 		for file in files:
@@ -289,9 +326,10 @@ class APNG:
 		
 	@classmethod
 	def open(cls, file):
-		"""Open a apng file.
-
-		@file can be a str of filename, a file-like object, or a bytes object.
+		"""Open an APNG file.
+		
+		:arg file: See :func:`chunks`.
+		:rtype: APNG
 		"""
 		hdr = None
 		head_chunks = []
@@ -302,7 +340,7 @@ class APNG:
 		
 		control = None
 		
-		for type, data in PNG.open(file).chunks:
+		for type, data in chunks(file):
 			if type == "IHDR":
 				hdr = data
 				frame_chunks.append((type, data))
@@ -341,7 +379,10 @@ class APNG:
 		return o
 		
 	def save(self, file):
-		"""Save to file. @file can be a str of filename or a file-like object.
+		"""Save entire image to a file.
+
+		:arg file: The destination.
+		:type file: path-like or file-like
 		"""
 		if isinstance(file, str) or hasattr(file, "__fspath__"):
 			with open(file, "wb") as f:
