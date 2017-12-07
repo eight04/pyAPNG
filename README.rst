@@ -15,6 +15,12 @@ Dependencies
 
 -  `Pillow <https://github.com/python-pillow/Pillow>`__ - **Optional**. You can still use pyAPNG without PIL but it can only read PNG files.
 
+Development dependencies
+------------------------
+
+-  `pngcheck <http://www.libpng.org/pub/png/apps/pngcheck.html>`_
+-  Other dependencies please checkout requirements.txt.
+
 Install
 -------
 
