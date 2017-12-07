@@ -38,7 +38,7 @@ def is_png(png):
 	elif isinstance(png, bytes):
 		png_header = png[:8]
 	else:
-		raise TypeError("Muse be file, bytes, or str but get {}"
+		raise TypeError("Must be file, bytes, or str but get {}"
 				.format(type(png)))
 			
 	return png_header == PNG_SIGN
