@@ -24,7 +24,7 @@ except ImportError:
 PNG_SIGN = b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
 
 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html#C.Summary-of-standard-chunks
-NO_MULTIPLE_CHUNK_TYPE = {"cHRM", "gAMA", "iCCP", "sBIT", "sRGB", "bKGD", "hIST", "tRNS", "pHYs", "tIME"}
+CHUNK_BEFORE_IDAT = {"cHRM", "gAMA", "iCCP", "sBIT", "sRGB", "bKGD", "hIST", "tRNS", "pHYs", "sPLT", "tIME"}
 
 def is_png(png):
 	"""Test if @png is valid png file by checking signature
@@ -239,7 +239,7 @@ class APNG:
 			
 			# and others...
 			for type, data in png.chunks:
-				if type in ("IHDR", "IEND") or type in NO_MULTIPLE_CHUNK_TYPE:
+				if type in ("IHDR", "IEND") or type in CHUNK_BEFORE_IDAT:
 					continue
 					
 				# convert IDAT to fdAT
