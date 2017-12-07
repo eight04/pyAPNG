@@ -72,7 +72,7 @@ def chunks(png):
 	
 	.. note::
 	
-		``chunk_raw_data`` includes chunk length and CRC.
+		``chunk_raw_data`` includes chunk length, type, and CRC.
 	
 	:arg png: If ``png`` is a :any:`path-like object` or :any:`file-like object`
 		object, read the content into bytes.
@@ -106,7 +106,7 @@ def make_chunk(type, data):
 	calculates chunk length and CRC for you.
 
 	:arg str type: PNG chunk type.
-	:arg bytes data: PNG chunk data, **excluding chunk length and CRC**.
+	:arg bytes data: PNG chunk data, **excluding chunk length, type, and CRC**.
 	:rtype: bytes
 	"""
 	out = struct.pack("!I", len(data))
