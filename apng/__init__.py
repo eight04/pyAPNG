@@ -294,6 +294,7 @@ class APNG:
 		@file can be a str of filename, a file-like object, or a bytes object.
 		"""
 		hdr = None
+		head_chunks = []
 		end = ("IEND", make_chunk("IEND", b""))
 		
 		frame_chunks = []
@@ -308,8 +309,8 @@ class APNG:
 			elif type == "acTL":
 				continue
 			elif type == "fcTL":
-				if any(c[0] == "IDAT" for c in frame_chunks):
-					# IDAT inside chunk
+				if any(type == "IDAT" for type, data in frame_chunks):
+					# IDAT inside chunk, go to next frame
 					frame_chunks.append(end)
 					frames.append((PNG.from_chunks(frame_chunks), control))
 					
@@ -318,14 +319,20 @@ class APNG:
 					frame_chunks = [("IHDR", hdr)]
 				else:
 					control = FrameControl.from_bytes(data[12:-4])
+			elif type == "IDAT":
+				frame_chunks.extend(head_chunks)
+				frame_chunks.append((type, data))
 			elif type == "fdAT":
 				# convert to IDAT
+				frame_chunks.extend(head_chunks)
 				frame_chunks.append(("IDAT", make_chunk("IDAT", data[12:-4])))
 			elif type == "IEND":
 				# end
 				frame_chunks.append(end)
 				frames.append((PNG.from_chunks(frame_chunks), control))
 				break
+			elif type in CHUNK_BEFORE_IDAT:
+				head_chunks.append((type, data))
 			else:
 				frame_chunks.append((type, data))
 				
