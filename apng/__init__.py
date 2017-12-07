@@ -30,12 +30,18 @@ def is_png(png):
 	"""
 	if isinstance(png, str):
 		with open(png, "rb") as f:
-			png = f.read(8)
+			png_header = f.read(8)		
+	elif hasattr(png, "read"):
+		position = png.tell()
+		png_header = png.read(8)
+		png.seek(position)
+	elif isinstance(png, bytes):
+		png_header = png[:8]
+	else:
+		raise TypeError("Muse be file, bytes, or str but get {}"
+				.format(type(png)))
 			
-	if hasattr(png, "read"):
-		png = png.read(8)
-		
-	return png[:8] == PNG_SIGN
+	return png_header == PNG_SIGN
 			
 def chunks_read(b):
 	"""Parse PNG bytes into different chunks, yielding (type, data). 
@@ -72,9 +78,8 @@ def chunks(png):
 	if isinstance(png, str):
 		# file name
 		with open(png, "rb") as f:
-			png = f.read()
-			
-	if hasattr(png, "read"):
+			png = f.read()		
+	elif hasattr(png, "read"):
 		# file like
 		png = png.read()
 		
