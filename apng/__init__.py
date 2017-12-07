@@ -26,9 +26,10 @@ PNG_SIGN = b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
 def is_png(png):
 	"""Test if @png is valid png file by checking signature
 	
-	@png can be str of the filename, a file-like object, or a bytes object.
+	@png can be str of the filename, a path-like object, a file-like object, or
+	a bytes object.
 	"""
-	if isinstance(png, str):
+	if isinstance(png, str) or hasattr(png, "__fspath__"):
 		with open(png, "rb") as f:
 			png_header = f.read(8)		
 	elif hasattr(png, "read"):
