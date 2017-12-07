@@ -214,11 +214,6 @@ class APNG:
 		# acTL
 		out.append(make_chunk("acTL", struct.pack("!II", len(self.frames), 0)))
 		
-		# tRNS.
-		# FIXME: HoneyView need this chunk to render animation, but why?
-		# HoneyView 5.16 #4750, 2016/02/05
-		out.append(make_chunk("tRNS", bytes(6)))
-		
 		# fcTL
 		if control:
 			out.append(make_chunk("fcTL", struct.pack("!I", seq) + control.to_bytes()))
