@@ -209,6 +209,10 @@ class APNG:
 		
 		# grab the chunks we needs
 		out = [PNG_SIGN]
+		# FIXME: it's tricky to define "other_chunks". HoneyView stop the 
+		# animation if it sees chunks other than fctl or idat, so we put other
+		# chunks to the end of the file
+		other_chunks = []
 		seq = 0
 		
 		# for first frame
@@ -226,10 +230,16 @@ class APNG:
 			seq += 1
 		
 		# and others...
+		idat_chunks = []
 		for type, data in png.chunks:
 			if type in ("IHDR", "IEND"):
 				continue
+			if type == "IDAT":
+				# put at last
+				idat_chunks.append(data)
+				continue
 			out.append(data)
+		out.extend(idat_chunks)
 		
 		# FIXME: we should do some optimization to frames...
 		# for other frames
@@ -244,17 +254,17 @@ class APNG:
 			for type, data in png.chunks:
 				if type in ("IHDR", "IEND") or type in CHUNK_BEFORE_IDAT:
 					continue
-					
-				# convert IDAT to fdAT
-				if type == "IDAT":
+				elif type == "IDAT":
+					# convert IDAT to fdAT
 					out.append(
 						make_chunk("fdAT", struct.pack("!I", seq) + data[8:-4])
 					)
 					seq += 1
 				else:
-					out.append(data)
+					other_chunks.append(data)
 		
 		# end
+		out.extend(other_chunks)
 		out.append(png.end)
 		
 		return b"".join(out)
