@@ -214,14 +214,18 @@ class FrameControl:
 
 class APNG:
 	"""Represent APNG image."""
-	def __init__(self):
+	def __init__(self, num_plays=0):
 		"""APNG is composed by multiple PNGs, which can be inserted with 
 		:meth:`append`.
+		
+		:arg int num_plays: Number of times to loop. 0 = infinite.
 			
 		:var frames: Frames of APNG, a list of ``(png, control)`` tuple.
 		:vartype frames: list[tuple(PNG, FrameControl)]
+		:var int num_plays: same as ``num_plays``.
 		"""
 		self.frames = []
+		self.num_plays = num_plays
 		
 	def append(self, png, **options):
 		"""Read a PNG file and append one frame.
@@ -258,7 +262,7 @@ class APNG:
 		out.append(png.hdr)
 		
 		# acTL
-		out.append(make_chunk("acTL", struct.pack("!II", len(self.frames), 0)))
+		out.append(make_chunk("acTL", struct.pack("!II", len(self.frames), self.num_plays)))
 		
 		# fcTL
 		if control:
@@ -337,6 +341,7 @@ class APNG:
 		
 		frame_chunks = []
 		frames = []
+		num_plays = 0
 		
 		control = None
 		
@@ -345,6 +350,7 @@ class APNG:
 				hdr = data
 				frame_chunks.append((type, data))
 			elif type == "acTL":
+				num_frames, num_plays = struct.unpack("!II", data[8:-4])
 				continue
 			elif type == "fcTL":
 				if any(type == "IDAT" for type, data in frame_chunks):
@@ -376,6 +382,7 @@ class APNG:
 				
 		o = cls()
 		o.frames = frames
+		o.num_plays = num_plays
 		return o
 		
 	def save(self, file):

@@ -47,7 +47,11 @@ class Functional(TestCase):
 	
 		for dir in pathlib.Path("test").iterdir():
 			with self.subTest("dir: {}".format(dir.name)):
-				im = APNG()
+				try:
+					property = json.loads(dir.joinpath("property.json").read_text())
+				except OSError:
+					property = {}
+				im = APNG(**property)
 				for png, ctrl in iter_frames(dir):
 					im.append(png, **ctrl)
 				filename = "{}-animated.png".format(dir.stem)
@@ -61,6 +65,11 @@ class Functional(TestCase):
 		for dir in pathlib.Path("test").iterdir():
 			with self.subTest(dir.stem):
 				im = APNG.open(dir.joinpath("animated.png"))
+				property = dir.joinpath("property.json")
+				if property.exists():
+					property = json.loads(property.read_text())
+					for key, value in property.items():
+						assert getattr(im, key) == value
 				for i, (png, ctrl) in enumerate(im.frames):
 					filename = "{}-{}.png".format(dir.stem, i + 1)
 					png.save(pathlib.Path("build").joinpath(filename))
