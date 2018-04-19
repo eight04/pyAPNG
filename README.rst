@@ -85,6 +85,10 @@ Todos
 Changelog
 ---------
 
+-  0.2.1 (Apr 19, 2018)
+
+   -  Add: support num_plays. (`#4 <https://github.com/eight04/pyAPNG/issues/4>`_)
+
 -  0.2.0 (Dec 8, 2017)
 
    -  Add test.
