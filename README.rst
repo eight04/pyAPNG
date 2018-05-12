@@ -13,7 +13,7 @@ A Python module to deal with APNG file.
 Features
 --------
 
-- Merge multiple images into one APNG file. (It use Pillow to convert image into PNG format)
+- Merge multiple images into one APNG file. (It use Pillow to convert images into PNG format)
 - Read APNG file and extract each frames into PNG file.
 - It doesn't do any optimization but only concat the images. This might be changed in the future.
 
@@ -72,6 +72,16 @@ Extract frames from an APNG file:
   im = APNG.open("animation.png")
   for i, (png, control) in enumerate(im.frames):
     png.save("{i}.png".format(i=i))
+    
+Performance
+-----------
+
+If you want to convert some large JPGs into animation, the library has to convert your JPGs into PNGs then merge them into a single animation APNG file. The problems are:
+
+1. It is extremely slow.
+2. The file size of the APNG is extremely large. Probably 5x of the original or more.
+
+In this case, I suggest trying an animation format called "ugoira", which is implemented by Pixiv.net. There is also an image viewer named "HoneyView" which can view it locally.
         
 Document
 ---------
