@@ -13,7 +13,7 @@ import binascii
 import itertools
 import io
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 PNG_SIGN = b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
 
