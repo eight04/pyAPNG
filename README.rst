@@ -96,6 +96,10 @@ Todos
 Changelog
 ---------
 
+- 0.3.1 (May 13, 2018)
+
+  - Add: universal wheel.
+
 - 0.3.0 (May 13, 2018)
 
   - Support Python 2.
