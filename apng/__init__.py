@@ -15,12 +15,6 @@ import io
 
 __version__ = "0.2.1"
 
-try:
-	import PIL.Image
-except ImportError:
-	# Without Pillow, apng can only handle PNG images
-	pass
-
 PNG_SIGN = b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
 
 # http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html#C.Summary-of-standard-chunks
@@ -29,94 +23,91 @@ CHUNK_BEFORE_IDAT = {
 	"sPLT", "tIME", "PLTE"
 }
 
-def is_png(png):
-	"""Test if ``png`` is a valid PNG file by checking the signature.
+def parse_chunks(b):
+	"""Parse PNG bytes into multiple chunks. 
 	
-	:arg png: If ``png`` is a :any:`path-like object` or :any:`file-like object`
-		object, read the content into bytes.
-	:type png: path-like, file-like, or bytes
-	:rtype: bool
-	"""
-	if isinstance(png, str) or hasattr(png, "__fspath__"):
-		with open(png, "rb") as f:
-			png_header = f.read(8)		
-	elif hasattr(png, "read"):
-		position = png.tell()
-		png_header = png.read(8)
-		png.seek(position)
-	elif isinstance(png, bytes):
-		png_header = png[:8]
-	else:
-		raise TypeError("Must be file, bytes, or str but get {}"
-				.format(type(png)))
-			
-	return png_header == PNG_SIGN
-			
-def chunks_read(b):
-	"""Parse PNG bytes into different chunks, yielding (type, data). 
+	:arg bytes b: The raw bytes of the PNG file.
+	:return: A generator yielding ``(chunk_type, chunk_data)``.
 	
-	@type is a string of chunk type.
-	@data is the bytes of the chunk. Including length, type, data, and crc.
+		* ``chunk_type``: The type of the chunk.
+		* ``chunk_data``: The data of the chunk, **including length, type, data, and crc**.
+		
+	:rtype: Iterator[tuple(str, bytes)]
 	"""
 	# skip signature
 	i = 8
 	# yield chunks
 	while i < len(b):
 		data_len, = struct.unpack("!I", b[i:i+4])
-		type = b[i+4:i+8].decode("latin-1")
-		yield type, b[i:i+data_len+12]
+		type_ = b[i+4:i+8].decode("latin-1")
+		yield type_, b[i:i+data_len+12]
 		i += data_len + 12
 
-def chunks(png):
-	"""Yield ``(chunk_type, chunk_raw_data)`` from ``png``.
-	
-	.. note::
-	
-		``chunk_raw_data`` includes chunk length, type, and CRC.
-	
-	:arg png: If ``png`` is a :any:`path-like object` or :any:`file-like object`
-		object, read the content into bytes.
-	:type png: path-like, file-like, or bytes
-	:rtype: Generator[tuple(str, bytes)]
-	"""
-	if not is_png(png):
-		# convert to png
-		if isinstance(png, bytes):
-			with io.BytesIO(png) as f:
-				with io.BytesIO() as f2:
-					PIL.Image.open(f).save(f2, "PNG", optimize=True)
-					png = f2.getvalue()
-		else:
-			with io.BytesIO() as f2:
-				PIL.Image.open(png).save(f2, "PNG", optimize=True)
-				png = f2.getvalue()
-	
-	if isinstance(png, str) or hasattr(png, "__fspath__"):
-		# path like
-		with open(png, "rb") as f:
-			png = f.read()		
-	elif hasattr(png, "read"):
-		# file like
-		png = png.read()
-		
-	return chunks_read(png)
-		
-def make_chunk(type, data):
-	"""Create a raw chunk by composing chunk's ``type`` and ``data``. It
+def make_chunk(chunk_type, chunk_data):
+	"""Create a raw chunk by composing chunk type and data. It
 	calculates chunk length and CRC for you.
 
-	:arg str type: PNG chunk type.
-	:arg bytes data: PNG chunk data, **excluding chunk length, type, and CRC**.
+	:arg str chunk_type: PNG chunk type.
+	:arg bytes chunk_data: PNG chunk data, **excluding chunk length, type, and CRC**.
 	:rtype: bytes
 	"""
-	out = struct.pack("!I", len(data))
-	data = type.encode("latin-1") + data
-	out += data + struct.pack("!I", binascii.crc32(data))
+	out = struct.pack("!I", len(chunk_data))
+	chunk_data = chunk_type.encode("latin-1") + chunk_data
+	out += chunk_data + struct.pack("!I", binascii.crc32(chunk_data) & 0xffffffff)
 	return out
 	
+def read_file(file):
+	"""Read ``file`` into ``bytes``.
+	
+	:arg file type: path-like or file-like
+	:rtype: bytes
+	"""
+	if hasattr(file, "read"):
+		return file.read()
+	if hasattr(file, "read_bytes"):
+		return file.read_bytes()
+	with open(file, "rb") as f:
+		return f.read()
+		
+def write_file(file, b):
+	"""Write ``b`` to file ``file``.
+	
+	:arg file type: path-like or file-like object.
+	:arg bytes b: The content.
+	"""
+	if hasattr(file, "write"):
+		file.write(b)
+	elif hasattr(file, "write_bytes"):
+		file.write_bytes(b)
+	else:
+		with open(file, "wb") as f:
+			f.write(b)
+	
+def open_file(file, mode):
+	"""Open a file.
+
+	:arg file: file-like or path-like object.
+	:arg str mode: ``mode`` argument for :func:`open`.
+	"""
+	if hasattr(file, "read"):
+		return file
+	if hasattr(file, "open"):
+		return file.open(mode)
+	return open(file, mode)
+			
+def file_to_png(fp):
+	"""Convert an image to PNG format with Pillow.
+	
+	:arg file-like fp: The image file.
+	:rtype: bytes
+	"""
+	import PIL.Image # pylint: disable=import-error
+	with io.BytesIO() as dest:
+		PIL.Image.open(fp).save(dest, "PNG", optimize=True)
+		return dest.getvalue()
+	
 class PNG:
-	"""Represent PNG image. This class should only be initiated with
-	classmethods."""
+	"""Represent a PNG image."""
 	def __init__(self):
 		self.hdr = None
 		self.end = None
@@ -126,10 +117,10 @@ class PNG:
 		
 	def init(self):
 		"""Extract some info from chunks"""
-		for type, data in self.chunks:
-			if type == "IHDR":
+		for type_, data in self.chunks:
+			if type_ == "IHDR":
 				self.hdr = data
-			elif type == "IEND":
+			elif type_ == "IEND":
 				self.end = data
 				
 		if self.hdr:
@@ -137,16 +128,45 @@ class PNG:
 			self.width, self.height = struct.unpack("!II", self.hdr[8:16])
 			
 	@classmethod
-	def open(cls, png):
+	def open(cls, file):
 		"""Open a PNG file.
 		
-		:arg png: See :func:`chunks`.
+		:arg file: Input file.
+		:type file: path-like or file-like
 		:rtype: :class:`PNG`
 		"""
-		o = cls()
-		o.chunks = list(chunks(png))
-		o.init()
-		return o
+		return cls.from_bytes(read_file(file))
+		
+	@classmethod
+	def open_any(cls, file):
+		"""Open an image file. If the image is not PNG format, it would convert
+		the image into PNG with Pillow module. If the module is not
+		installed, :class:`ImportError` would be raised.
+		
+		:arg file: Input file.
+		:type file: path-like or file-like
+		:rtype: :class:`PNG`
+		"""
+		with open_file(file, "rb") as f:
+			header = f.read(8)
+			f.seek(0)
+			if header != PNG_SIGN:
+				b = file_to_png(f)
+			else:
+				b = f.read()
+		return cls.from_bytes(b)
+		
+	@classmethod
+	def from_bytes(cls, b):
+		"""Create :class:`PNG` from raw bytes.
+		
+		:arg bytes b: The raw bytes of the PNG file.
+		:rtype: :class:`PNG`
+		"""
+		im = cls()
+		im.chunks = list(parse_chunks(b))
+		im.init()
+		return im
 		
 	@classmethod
 	def from_chunks(cls, chunks):
@@ -156,13 +176,14 @@ class PNG:
 			:func:`chunks`.
 		:type chunks: list[tuple(str, bytes)]
 		"""
-		o = cls()
-		o.chunks = chunks
-		o.init()
-		return o
+		im = cls()
+		im.chunks = chunks
+		im.init()
+		return im
+		
 		
 	def to_bytes(self):
-		"""Convert entire image to bytes.
+		"""Convert the entire image to bytes.
 		
 		:rtype: bytes
 		"""
@@ -171,21 +192,21 @@ class PNG:
 		return b"".join(chunks)
 		
 	def save(self, file):
-		"""Save entire image to a file.
+		"""Save the entire image to a file.
 
-		:arg file: The destination.
+		:arg file: Output file.
 		:type file: path-like or file-like
 		"""
-		if isinstance(file, str) or hasattr(file, "__fspath__"):
-			with open(file, "wb") as f:
-				f.write(self.to_bytes())
-		else:
-			file.write(self.to_bytes())
+		write_file(file, self.to_bytes())
 		
 class FrameControl:
 	"""A data class holding fcTL info."""
-	def __init__(self, width=None, height=None, x_offset=0, y_offset=0, delay=100, delay_den=1000, depose_op=1, blend_op=0):
-		"""Parameters are assigned as object members. See `https://wiki.mozilla.org/APNG_Specification <https://wiki.mozilla.org/APNG_Specification#.60fcTL.60:_The_Frame_Control_Chunk>`_ for the detail of fcTL.
+	def __init__(self, width=None, height=None, x_offset=0, y_offset=0,
+			delay=100, delay_den=1000, depose_op=1, blend_op=0):
+		"""Parameters are assigned as object members. See
+		`https://wiki.mozilla.org/APNG_Specification 
+		<https://wiki.mozilla.org/APNG_Specification#.60fcTL.60:_The_Frame_Control_Chunk>`_
+		for the detail of fcTL.
 		"""
 		self.width = width
 		self.height = height
@@ -201,7 +222,10 @@ class FrameControl:
 		
 		:rtype: bytes
 		"""
-		return struct.pack("!IIIIHHbb", self.width, self.height, self.x_offset, self.y_offset, self.delay, self.delay_den, self.depose_op, self.blend_op)
+		return struct.pack(
+			"!IIIIHHbb", self.width, self.height, self.x_offset, self.y_offset,
+			self.delay, self.delay_den, self.depose_op, self.blend_op
+		)
 		
 	@classmethod
 	def from_bytes(cls, b):
@@ -213,14 +237,14 @@ class FrameControl:
 		return cls(*struct.unpack("!IIIIHHbb", b))
 
 class APNG:
-	"""Represent APNG image."""
+	"""Represent an APNG image."""
 	def __init__(self, num_plays=0):
-		"""APNG is composed by multiple PNGs, which can be inserted with 
-		:meth:`append`.
+		"""An :class:`APNG` is composed by multiple :class:`PNG` s and
+		:class:`FrameControl`, which can be inserted with :meth:`append`.
 		
 		:arg int num_plays: Number of times to loop. 0 = infinite.
 			
-		:var frames: Frames of APNG, a list of ``(png, control)`` tuple.
+		:var frames: The frames of APNG.
 		:vartype frames: list[tuple(PNG, FrameControl)]
 		:var int num_plays: same as ``num_plays``.
 		"""
@@ -228,12 +252,13 @@ class APNG:
 		self.num_plays = num_plays
 		
 	def append(self, png, **options):
-		"""Read a PNG file and append one frame.
+		"""Append one frame.
 		
-		:arg png: See :meth:`PNG.open`.
-		:arg options: See :class:`FrameControl`.
+		:arg PNG png: Append a :class:`PNG` as a frame.
+		:arg dict options: The options for :class:`FrameControl`.
 		"""
-		png = PNG.open(png)
+		if not isinstance(png, PNG):
+			raise TypeError("Expect an instance of `PNG` but got `{}`".format(png))
 		control = FrameControl(**options)
 		if control.width is None:
 			control.width = png.width
@@ -241,8 +266,17 @@ class APNG:
 			control.height = png.height
 		self.frames.append((png, control))
 		
+	def append_file(self, file, **options):
+		"""Create a PNG from file and append the PNG as a frame.
+		
+		:arg file: Input file.
+		:type file: path-like or file-like.
+		:arg dict options: The options for :class:`FrameControl`.
+		"""
+		self.append(PNG.open_any(file), **options)
+		
 	def to_bytes(self):
-		"""Convert entire image to bytes.
+		"""Convert the entire image to bytes.
 		
 		:rtype: bytes
 		"""
@@ -271,10 +305,10 @@ class APNG:
 		
 		# and others...
 		idat_chunks = []
-		for type, data in png.chunks:
-			if type in ("IHDR", "IEND"):
+		for type_, data in png.chunks:
+			if type_ in ("IHDR", "IEND"):
 				continue
-			if type == "IDAT":
+			if type_ == "IDAT":
 				# put at last
 				idat_chunks.append(data)
 				continue
@@ -291,10 +325,10 @@ class APNG:
 			seq += 1
 			
 			# and others...
-			for type, data in png.chunks:
-				if type in ("IHDR", "IEND") or type in CHUNK_BEFORE_IDAT:
+			for type_, data in png.chunks:
+				if type_ in ("IHDR", "IEND") or type_ in CHUNK_BEFORE_IDAT:
 					continue
-				elif type == "IDAT":
+				elif type_ == "IDAT":
 					# convert IDAT to fdAT
 					out.append(
 						make_chunk("fdAT", struct.pack("!I", seq) + data[8:-4])
@@ -311,28 +345,28 @@ class APNG:
 		
 	@classmethod
 	def from_files(cls, files, **options):
-		"""Create APNG from multiple files.
+		"""Create an APNG from multiple files.
 		
-		This is same as::
+		This is a shortcut of::
 		
 			im = APNG()
 			for file in files:
-				im.append(file, **options)
+				im.append_file(file, **options)
 				
-		:arg list files: A list of file. See :meth:`PNG.open`.
-		:arg options: Options for :class:`FrameControl`.
+		:arg list files: A list of filename. See :meth:`PNG.open`.
+		:arg dict options: Options for :class:`FrameControl`.
 		:rtype: APNG
 		"""
-		o = cls()
+		im = cls()
 		for file in files:
-			o.append(file, **options)
-		return o
+			im.append_file(file, **options)
+		return im
 		
 	@classmethod
-	def open(cls, file):
-		"""Open an APNG file.
+	def from_bytes(cls, b):
+		"""Create an APNG from raw bytes.
 		
-		:arg file: See :func:`chunks`.
+		:arg bytes b: The raw bytes of the APNG file.
 		:rtype: APNG
 		"""
 		hdr = None
@@ -345,54 +379,62 @@ class APNG:
 		
 		control = None
 		
-		for type, data in chunks(file):
-			if type == "IHDR":
+		for type_, data in parse_chunks(b):
+			if type_ == "IHDR":
 				hdr = data
-				frame_chunks.append((type, data))
-			elif type == "acTL":
-				num_frames, num_plays = struct.unpack("!II", data[8:-4])
+				frame_chunks.append((type_, data))
+			elif type_ == "acTL":
+				_num_frames, num_plays = struct.unpack("!II", data[8:-4])
 				continue
-			elif type == "fcTL":
-				if any(type == "IDAT" for type, data in frame_chunks):
+			elif type_ == "fcTL":
+				if any(type_ == "IDAT" for type_, data in frame_chunks):
 					# IDAT inside chunk, go to next frame
 					frame_chunks.append(end)
 					frames.append((PNG.from_chunks(frame_chunks), control))
 					
 					control = FrameControl.from_bytes(data[12:-4])
+					# https://github.com/PyCQA/pylint/issues/2072
+					# pylint: disable=typecheck
 					hdr = make_chunk("IHDR", struct.pack("!II", control.width, control.height) + hdr[16:-4])
 					frame_chunks = [("IHDR", hdr)]
 				else:
 					control = FrameControl.from_bytes(data[12:-4])
-			elif type == "IDAT":
+			elif type_ == "IDAT":
 				frame_chunks.extend(head_chunks)
-				frame_chunks.append((type, data))
-			elif type == "fdAT":
+				frame_chunks.append((type_, data))
+			elif type_ == "fdAT":
 				# convert to IDAT
 				frame_chunks.extend(head_chunks)
 				frame_chunks.append(("IDAT", make_chunk("IDAT", data[12:-4])))
-			elif type == "IEND":
+			elif type_ == "IEND":
 				# end
 				frame_chunks.append(end)
 				frames.append((PNG.from_chunks(frame_chunks), control))
 				break
-			elif type in CHUNK_BEFORE_IDAT:
-				head_chunks.append((type, data))
+			elif type_ in CHUNK_BEFORE_IDAT:
+				head_chunks.append((type_, data))
 			else:
-				frame_chunks.append((type, data))
+				frame_chunks.append((type_, data))
 				
 		o = cls()
 		o.frames = frames
 		o.num_plays = num_plays
 		return o
 		
+	@classmethod
+	def open(cls, file):
+		"""Open an APNG file.
+		
+		:arg file: Input file.
+		:type file: path-like or file-like.
+		:rtype: APNG
+		"""
+		return cls.from_bytes(read_file(file))
+		
 	def save(self, file):
-		"""Save entire image to a file.
+		"""Save the entire image to a file.
 
-		:arg file: The destination.
+		:arg file: Output file.
 		:type file: path-like or file-like
 		"""
-		if isinstance(file, str) or hasattr(file, "__fspath__"):
-			with open(file, "wb") as f:
-				f.write(self.to_bytes())
-		else:
-			file.write(self.to_bytes())
+		write_file(file, self.to_bytes())

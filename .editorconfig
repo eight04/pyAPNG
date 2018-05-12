@@ -1,7 +1,7 @@
-[*.rst]
-indent_style = space
-indent_size = 3
+[*.py]
+indent_style = tab
+indent_size = 4
 
-[*.yml]
+[*.{rst,yml}]
 indent_style = space
 indent_size = 2

@@ -1,10 +1,26 @@
 #! python3
 
-from xcute import cute, conf, exc
+import sys
+from xcute import cute, Skip
 
+def readme():
+	"""Live reload readme"""
+	from livereload import Server
+	server = Server()
+	server.watch("README.rst", "py cute.py readme_build")
+	server.serve(open_url_delay=1, root="build/readme")
+	
+IS_LATEST = sys.version_info[:2] == (3, 6)
+	
 cute(
 	pkg_name = "apng",
-	test = ['python test.py', 'readme_build'],
+	lint = "pylint cute.py test.py apng",
+	test = [
+		"lint",
+		'{py:2} test.py',
+		'{py:3} test.py',
+		'readme_build'
+	],
 	bump_pre = 'test',
 	bump_post = ['dist', 'release', 'publish', 'install'],
 	dist = 'rm -r build dist & python setup.py sdist bdist_wheel',
@@ -21,13 +37,12 @@ cute(
 	install = 'pip install -e .',
 	install_err = 'elevate -c -w pip install -e .',
 	readme_build = [
-		'python setup.py --long-description | x-pipe build/ld.rst',
-		'rst2html --no-raw --exit-status=1 --verbose '
-			'build/ld.rst build/ld.html'
+		'python setup.py --long-description | x-pipe build/readme/index.rst',
+		'rst2html5.py --no-raw --exit-status=1 --verbose '
+			'build/readme/index.rst build/readme/index.html'
 	],
-	readme_build_err = ['readme_show', exc],
-	readme_show = 'start build/ld.html',
-	readme = 'readme_build',
-	readme_post = 'readme_show',
-	doc = 'sphinx-autobuild -B -z {pkg_name} docs docs/build'
+	readme_pre = "readme_build",
+	readme = readme,
+	doc = 'sphinx-autobuild -B -z {pkg_name} docs docs/build',
+	travis = [Skip("lint", not IS_LATEST), "python test.py", "readme_build"]
 )

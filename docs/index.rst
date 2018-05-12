@@ -10,9 +10,7 @@ Usage/examples can be founded at `pyAPNG's readme <https://github.com/eight04/py
 Functions
 ---------
 
-.. autofunction:: is_png
-
-.. autofunction:: chunks
+.. autofunction:: parse_chunks
 
 .. autofunction:: make_chunk
 
@@ -20,10 +18,10 @@ Classes
 -------
 
 .. autoclass:: PNG
-   :members: open, from_chunks, to_bytes, save
+  :members: open, open_any, from_bytes, to_bytes, save
 
 .. autoclass:: FrameControl
-   :members: to_bytes, from_bytes
+  :members: from_bytes, to_bytes
 
 .. autoclass:: APNG
-   :members: append, to_bytes, from_files, open, save
+  :members: open, append, append_file, from_bytes, to_bytes, from_files, save

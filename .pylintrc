@@ -1,0 +1,16 @@
+[MESSAGES CONTROL]
+disable=
+	bad-continuation, # https://github.com/PyCQA/pylint/issues/1148
+	bad-whitespace, # https://github.com/PyCQA/pylint/issues/1368
+	design,
+	fixme,
+	missing-docstring,
+	trailing-whitespace,
+	
+[BASIC]
+# https://github.com/PyCQA/pylint/issues/2018
+argument-rgx=^[a-z_]{1,}$
+variable-rgx=^[a-z_]{1,}$
+
+[FORMAT]
+indent-string=\t

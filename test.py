@@ -1,39 +1,31 @@
 #! python3
 
-import io
 import json
-import pathlib
-import subprocess
-import tempfile
-from unittest import TestCase, main
-from apng import is_png, APNG
+from apng import APNG
 
-class Main(TestCase):
-	def test_is_png(self):
-		file = pathlib.Path("test/ball/animated.png")
-		with self.subTest("file name"):
-			assert is_png(str(file))
-			
-		with self.subTest("file-like"):
-			with file.open("rb") as f:
-				assert is_png(f)
-				
-		with self.subTest("shouldn't touch file pointer"):
-			with file.open("rb") as f:
-				is_png(f)
-				assert f.tell() == 0
-				
-		with self.subTest("bytes"):
-			assert is_png(file.read_bytes())
-			
-		with self.subTest("path-like"):
-			assert is_png(file)
+try:
+	import pathlib
+except ImportError:
+	import pathlib2 as pathlib
+	
+try:
+	import unittest2 as unittest
+except ImportError:
+	import unittest
 
-class Functional(TestCase):
+try:
+	import subprocess32 as subprocess
+except ImportError:
+	import subprocess
+
+class Functional(unittest.TestCase):
+	def setUp(self):
+		pathlib.Path("build").mkdir(parents=True, exist_ok=True)
+
 	def test_assemble(self):
-		def iter_frames(dir):
+		def iter_frames(dir_):
 			frames = {}
-			for file in dir.glob("frame-*"):
+			for file in dir_.glob("frame-*"):
 				if file.stem not in frames:
 					frames[file.stem] = {"name": file.stem}
 				frames[file.stem][file.suffix] = file
@@ -45,36 +37,36 @@ class Functional(TestCase):
 				yield frame[".png"], ctrl
 				
 	
-		for dir in pathlib.Path("test").iterdir():
-			with self.subTest("dir: {}".format(dir.name)):
+		for dir_ in pathlib.Path("test").iterdir():
+			with self.subTest("dir: {}".format(dir_.name)):
 				try:
-					property = json.loads(dir.joinpath("property.json").read_text())
-				except OSError:
-					property = {}
-				im = APNG(**property)
-				for png, ctrl in iter_frames(dir):
-					im.append(png, **ctrl)
-				filename = "{}-animated.png".format(dir.stem)
+					options = json.loads(dir_.joinpath("property.json").read_text())
+				except IOError:
+					options = {}
+				im = APNG(**options)
+				for file, ctrl in iter_frames(dir_):
+					im.append_file(file, **ctrl)
+				filename = "{}-animated.png".format(dir_.stem)
 				im.save(pathlib.Path("build").joinpath(filename))
 				subprocess.run(
-					["pngcheck", filename],
+					"pngcheck {}".format(filename),
 					cwd="build", shell=True, check=True
 				)
 				
 	def test_disassemble(self):
-		for dir in pathlib.Path("test").iterdir():
-			with self.subTest(dir.stem):
-				im = APNG.open(dir.joinpath("animated.png"))
-				property = dir.joinpath("property.json")
-				if property.exists():
-					property = json.loads(property.read_text())
-					for key, value in property.items():
+		for dir_ in pathlib.Path("test").iterdir():
+			with self.subTest(dir_.stem):
+				im = APNG.open(dir_.joinpath("animated.png"))
+				options_file = dir_.joinpath("property.json")
+				if options_file.exists():
+					options = json.loads(options_file.read_text())
+					for key, value in options.items():
 						assert getattr(im, key) == value
-				for i, (png, ctrl) in enumerate(im.frames):
-					filename = "{}-{}.png".format(dir.stem, i + 1)
+				for i, (png, _ctrl) in enumerate(im.frames):
+					filename = "{}-{}.png".format(dir_.stem, i + 1)
 					png.save(pathlib.Path("build").joinpath(filename))
 					subprocess.run(
-						["pngcheck", filename],
+						"pngcheck {}".format(filename),
 						cwd="build", shell=True, check=True)
 
-main()
+unittest.main()
