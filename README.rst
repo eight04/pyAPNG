@@ -96,7 +96,7 @@ Todos
 Changelog
 ---------
 
-- 0.3.0 (Next)
+- 0.3.0 (May 13, 2018)
 
   - Support Python 2.
   - Add: PNG method ``open_any``, ``from_bytes``.
