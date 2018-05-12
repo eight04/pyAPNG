@@ -4,9 +4,9 @@ import json
 from apng import APNG
 
 try:
-	import pathlib
-except ImportError:
 	import pathlib2 as pathlib
+except ImportError:
+	import pathlib
 	
 try:
 	import unittest2 as unittest
@@ -37,7 +37,7 @@ class Functional(unittest.TestCase):
 				yield frame[".png"], ctrl
 				
 	
-		for dir_ in pathlib.Path("test").iterdir():
+		for dir_ in pathlib.Path("test/fixtures").iterdir():
 			with self.subTest("dir: {}".format(dir_.name)):
 				try:
 					options = json.loads(dir_.joinpath("property.json").read_text())
@@ -54,7 +54,7 @@ class Functional(unittest.TestCase):
 				)
 				
 	def test_disassemble(self):
-		for dir_ in pathlib.Path("test").iterdir():
+		for dir_ in pathlib.Path("test/fixtures").iterdir():
 			with self.subTest(dir_.stem):
 				im = APNG.open(dir_.joinpath("animated.png"))
 				options_file = dir_.joinpath("property.json")

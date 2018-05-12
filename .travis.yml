@@ -7,4 +7,5 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y pngcheck
 script:
-  - python cute.py travis
+  - pip install -e .
+  - python cute.py test
