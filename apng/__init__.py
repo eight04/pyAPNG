@@ -10,7 +10,6 @@ https://www.w3.org/TR/PNG/
 
 import struct
 import binascii
-import itertools
 import io
 import zlib
 from collections import namedtuple

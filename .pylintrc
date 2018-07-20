@@ -14,3 +14,6 @@ variable-rgx=^[a-z_]{1,}$
 
 [FORMAT]
 indent-string=\t
+
+[VARIABLES]
+init-import=y
