@@ -106,6 +106,12 @@ Todos
 Changelog
 ---------
 
+- 0.3.2 (Jul 20, 2018)
+
+  - Add: ``make_text_chunk`` function.
+  - Add: ``Chunk`` data class.
+  - Change: now ``parse_chunks`` yields ``Chunk`` instead of a tuple. This should be safe since ``Chunk`` is a namedtuple.
+
 - 0.3.1 (May 13, 2018)
 
   - Add: universal wheel.
