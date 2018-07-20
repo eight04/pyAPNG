@@ -1,6 +1,5 @@
 #! python3
 
-import re
 import os.path
 import sys
 
