@@ -12,6 +12,8 @@ import struct
 import binascii
 import itertools
 import io
+import zlib
+from collections import namedtuple
 
 __version__ = "0.3.1"
 
@@ -27,12 +29,8 @@ def parse_chunks(b):
 	"""Parse PNG bytes into multiple chunks. 
 	
 	:arg bytes b: The raw bytes of the PNG file.
-	:return: A generator yielding ``(chunk_type, chunk_data)``.
-	
-		* ``chunk_type``: The type of the chunk.
-		* ``chunk_data``: The data of the chunk, **including length, type, data, and crc**.
-		
-	:rtype: Iterator[tuple(str, bytes)]
+	:return: A generator yielding :class:`Chunk`.
+	:rtype: Iterator[Chunk]
 	"""
 	# skip signature
 	i = 8
@@ -40,7 +38,7 @@ def parse_chunks(b):
 	while i < len(b):
 		data_len, = struct.unpack("!I", b[i:i+4])
 		type_ = b[i+4:i+8].decode("latin-1")
-		yield type_, b[i:i+data_len+12]
+		yield Chunk(type_, b[i:i+data_len+12])
 		i += data_len + 12
 
 def make_chunk(chunk_type, chunk_data):
@@ -56,6 +54,63 @@ def make_chunk(chunk_type, chunk_data):
 	out += chunk_data + struct.pack("!I", binascii.crc32(chunk_data) & 0xffffffff)
 	return out
 	
+def make_text_chunk(
+		type="tEXt", key="Comment", value="",
+		compression_flag=0, compression_method=0, lang="", translated_key=""):
+	"""Create a text chunk with a key value pair.
+	See https://www.w3.org/TR/PNG/#11textinfo for text chunk information.
+
+	Usage:
+	
+	.. code:: python
+
+		from apng import APNG, make_text_chunk
+
+		im = APNG.open("file.png")
+		png, control = im.frames[0]
+		png.chunks.append(make_text_chunk("tEXt", "Comment", "some text"))
+		im.save("file.png")
+
+	:arg str type: Text chunk type: "tEXt", "zTXt", or "iTXt":
+
+		tEXt uses Latin-1 characters.
+		zTXt uses Latin-1 characters, compressed with zlib.
+		iTXt uses UTF-8 characters.
+
+	:arg str key: The key string, 1-79 characters.
+	
+	:arg str value: The text value. It would be encoded into
+		:class:`bytes` and compressed if needed.
+		
+	:arg int compression_flag: The compression flag for iTXt.
+	:arg int compression_method: The compression method for zTXt and iTXt.
+	:arg str lang: The language tag for iTXt.
+	:arg str translated_key: The translated keyword for iTXt.
+	:rtype: Chunk
+	"""
+	# pylint: disable=redefined-builtin
+	if type == "tEXt":
+		data = key.encode("latin-1") + b"\0" + value.encode("latin-1")
+	elif type == "zTXt":
+		data = (
+			key.encode("latin-1") + struct.pack("!xb", compression_method) +
+			zlib.compress(value.encode("latin-1"))
+		)
+	elif type == "iTXt":
+		data = (
+			key.encode("latin-1") +
+			struct.pack("!xbb", compression_flag, compression_method) +
+			lang.encode("latin-1") + b"\0" +
+			translated_key.encode("utf-8") + b"\0"
+		)
+		if compression_flag:
+			data += zlib.compress(value.encode("utf-8"))
+		else:
+			data += value.encode("utf-8")
+	else:
+		raise TypeError("unknown type {!r}".format(type))
+	return Chunk(type, make_chunk(type, data))
+ 
 def read_file(file):
 	"""Read ``file`` into ``bytes``.
 	
@@ -105,15 +160,28 @@ def file_to_png(fp):
 	with io.BytesIO() as dest:
 		PIL.Image.open(fp).save(dest, "PNG", optimize=True)
 		return dest.getvalue()
+		
+class Chunk(namedtuple("Chunk", ["type", "data"])):
+	"""A namedtuple to represent the PNG chunk.
+	
+	:arg str type: The chunk type.
+	:arg bytes data: The raw bytes of the chunk, including chunk length, type,
+		data, and CRC.
+	"""
+	pass
 	
 class PNG:
-	"""Represent a PNG image."""
+	"""Represent a PNG image.
+	"""
 	def __init__(self):
 		self.hdr = None
 		self.end = None
 		self.width = None
 		self.height = None
 		self.chunks = []
+		"""A list of :class:`Chunk`. After reading a PNG file, the bytes
+		are parsed into multiple chunks. You can remove/add chunks into
+		this array before calling :func:`to_bytes`."""
 		
 	def init(self):
 		"""Extract some info from chunks"""
@@ -274,7 +342,7 @@ class APNG:
 		:arg dict options: The options for :class:`FrameControl`.
 		"""
 		self.append(PNG.open_any(file), **options)
-		
+
 	def to_bytes(self):
 		"""Convert the entire image to bytes.
 		

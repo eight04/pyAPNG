@@ -14,11 +14,18 @@ Functions
 
 .. autofunction:: make_chunk
 
+.. autofunction:: make_text_chunk
+
 Classes
 -------
 
+.. autoclass:: Chunk
+
 .. autoclass:: PNG
   :members: open, open_any, from_bytes, to_bytes, save
+  
+  .. autoinstanceattribute:: chunks
+    :annotation: = []
 
 .. autoclass:: FrameControl
   :members: from_bytes, to_bytes

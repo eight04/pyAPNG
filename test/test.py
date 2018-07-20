@@ -1,4 +1,5 @@
 #! python3
+# coding=utf-8
 
 import json
 from apng import APNG
@@ -17,6 +18,40 @@ try:
 	import subprocess32 as subprocess
 except ImportError:
 	import subprocess
+	
+class MakeTextChunk(unittest.TestCase):
+	def test_text(self):
+		from apng import make_text_chunk, make_chunk
+		chunk_type, data = make_text_chunk(value="some text")
+		self.assertEqual(chunk_type, "tEXt")
+		self.assertEqual(data, make_chunk("tEXt", b"Comment\0some text"))
+		
+	def test_ztxt(self):
+		import zlib
+		from apng import make_text_chunk, make_chunk
+		chunk_type, data = make_text_chunk(type="zTXt", value="some text")
+		self.assertEqual(chunk_type, "zTXt")
+		self.assertEqual(data, make_chunk("zTXt", b"Comment\0\0" + zlib.compress(b"some text")))
+		
+	def test_itxt(self):
+		from apng import make_text_chunk, make_chunk
+		chunk_type, data = make_text_chunk(type="iTXt", value=u"ＳＯＭＥ　ＴＥＸＴ")
+		self.assertEqual(chunk_type, "iTXt")
+		self.assertEqual(data, make_chunk("iTXt", b"Comment\0\0\0\0\0" + u"ＳＯＭＥ　ＴＥＸＴ".encode("utf-8")))
+		
+	def test_itxt_compressed(self):
+		import zlib
+		from apng import make_text_chunk, make_chunk
+		chunk_type, data = make_text_chunk(type="iTXt", value=u"ＳＯＭＥ　ＴＥＸＴ", compression_flag=1)
+		self.assertEqual(chunk_type, "iTXt")
+		self.assertEqual(
+			data,
+			make_chunk(
+				"iTXt",
+				b"Comment\0\1\0\0\0" +
+					zlib.compress(u"ＳＯＭＥ　ＴＥＸＴ".encode("utf-8"))
+			)
+		)
 
 class Functional(unittest.TestCase):
 	def setUp(self):

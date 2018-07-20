@@ -73,6 +73,16 @@ Extract frames from an APNG file:
   for i, (png, control) in enumerate(im.frames):
     png.save("{i}.png".format(i=i))
     
+Add a text chunk to the PNG file:
+
+.. code:: python
+
+  from apng import PNG, make_text_chunk
+  
+  im = PNG.open("image.png")
+  im.chunks.append(make_text_chunk(key="Comment", value="Some text"))
+  im.save("image.png")
+    
 Performance
 -----------
 
