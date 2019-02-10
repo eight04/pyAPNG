@@ -106,6 +106,10 @@ Todos
 Changelog
 ---------
 
+- 0.3.3 (Feb 11, 2019)
+
+  - Fix: failed to extract frames containing multiple ``fdAT`` chunks.
+
 - 0.3.2 (Jul 20, 2018)
 
   - Add: ``make_text_chunk`` function.
