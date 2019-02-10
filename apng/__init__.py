@@ -129,10 +129,10 @@ def write_file(file, b):
 	:arg file type: path-like or file-like object.
 	:arg bytes b: The content.
 	"""
-	if hasattr(file, "write"):
-		file.write(b)
-	elif hasattr(file, "write_bytes"):
+	if hasattr(file, "write_bytes"):
 		file.write_bytes(b)
+	elif hasattr(file, "write"):
+		file.write(b)
 	else:
 		with open(file, "wb") as f:
 			f.write(b)

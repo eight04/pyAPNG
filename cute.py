@@ -1,7 +1,7 @@
-#! python3
-
+# https://github.com/PyCQA/pylint/issues/1368
+# pylint: disable=bad-whitespace
 import sys
-from xcute import cute, Skip, conf
+from xcute import cute, Skip
 
 def readme():
 	"""Live reload readme"""
@@ -12,16 +12,12 @@ def readme():
 	
 IS_LATEST = sys.version_info[:2] == (3, 6)
 
-conf.update({
-	"python": "{!r}".format(sys.executable)
-})
-	
 cute(
 	pkg_name = "apng",
-	lint = Skip("pylint cute.py test/test.py apng", sys.version_info < (3, )),
+	lint = Skip("pylint cute.py test apng", sys.version_info < (3, )),
 	test = [
 		"lint",
-		"{python} test/test.py",
+		"pytest -x test",
 		"readme_build"
 	],
 	bump_pre = 'test',
@@ -29,7 +25,7 @@ cute(
 	clean = "x-clean build dist",
 	dist = [
 		"clean",
-		"{python} setup.py sdist bdist_wheel"
+		"python setup.py sdist bdist_wheel"
 	],
 	release = [
 		'git add .',
@@ -40,9 +36,9 @@ cute(
 		'twine upload dist/*',
 		'git push --follow-tags'
 	],
-	install = '{python} -m pip install -e .',
+	install = 'python -m pip install -e .',
 	readme_build = [
-		'{python} setup.py --long-description | x-pipe build/readme/index.rst',
+		'python setup.py --long-description | x-pipe build/readme/index.rst',
 		'rst2html5.py --no-raw --exit-status=1 --verbose '
 			'build/readme/index.rst build/readme/index.html'
 	],

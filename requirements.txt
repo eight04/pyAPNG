@@ -1,10 +1,8 @@
-docutils>=0.14
-twine>=1.6.5,<2
-pyxcute>=0.5.1,<0.6
-sphinx-autobuild>=0.7.1,<0.8
-Sphinx>=1.6.5,<2
-pylint>=1.8.4,<2
-pathlib2>=2.3.2,<3; python_version<"3.5"
-unittest2>=1.1.0,<2; python_version<"3.5"
-subprocess32==3.5.0rc1; python_version<"3.5"
--e .
+Sphinx==1.8.4
+docutils==0.14
+pathlib2==2.3.3
+pylint==2.2.2; python_version >= '3.0'
+pytest==4.2.0
+pyxcute==0.5.2
+sphinx-autobuild==0.7.1
+twine==1.12.1
