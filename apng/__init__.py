@@ -14,7 +14,7 @@ import io
 import zlib
 from collections import namedtuple
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 PNG_SIGN = b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
 
