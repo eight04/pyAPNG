@@ -1,8 +1,9 @@
 Sphinx==1.8.4
 docutils==0.14
 pathlib2==2.3.3
-pylint==2.2.2; python_version >= '3.0'
+pylint==2.2.2; python_version >= "3.0"
 pytest==4.2.0
 pyxcute==0.5.2
 sphinx-autobuild==0.7.1
 twine==1.12.1
+wheel==0.32.3
