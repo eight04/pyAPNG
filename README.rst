@@ -106,6 +106,10 @@ Todos
 Changelog
 ---------
 
+- 0.3.4 (Mar 11, 2020)
+
+  - Fix: exclude test files from the package.
+
 - 0.3.3 (Feb 11, 2019)
 
   - Fix: failed to extract frames containing multiple ``fdAT`` chunks.
