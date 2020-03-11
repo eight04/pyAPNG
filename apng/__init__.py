@@ -395,7 +395,8 @@ class APNG:
 			for type_, data in png.chunks:
 				if type_ in ("IHDR", "IEND") or type_ in CHUNK_BEFORE_IDAT:
 					continue
-				elif type_ == "IDAT":
+					
+				if type_ == "IDAT":
 					# convert IDAT to fdAT
 					out.append(
 						make_chunk("fdAT", struct.pack("!I", seq) + data[8:-4])

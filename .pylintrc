@@ -5,8 +5,8 @@ disable=
 	fixme,
 	missing-docstring,
 	trailing-whitespace,
-  unnecessary-pass
-
+  unnecessary-pass,
+  import-outside-toplevel
 	
 [BASIC]
 # https://github.com/PyCQA/pylint/issues/2018
